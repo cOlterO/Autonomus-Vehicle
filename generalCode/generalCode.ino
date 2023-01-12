@@ -16,12 +16,16 @@ const int echoPin2 = 19;
 const int echoPin3 = 20;
 
 // defines variables
-long duration1;
-long distance1;
-long duration2;
-long distance2;
-long duration3;
-long distance3;
+float duration1;
+float distance1;
+float duration2;
+float distance2;
+float duration3;
+float distance3;
+
+float distanceAVG1[4];
+float distanceAVG2[4];
+float distanceAVG3[4];
 
 
 void setup() {
@@ -44,9 +48,9 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);  // LOW means ON in ESP8266 LED_BUILTIN
   distanceSensors();               // Take measurements from the 3 sensors
 
-  if (distance2 < 10) {    // If the front sensor is close to a wall
+  if (distance2 < 10) {    // If the front sensor is close to a wall or obstacle
     initialStateMotors();  // Stop the car
-                           //send signal to Arduino Nano 33
+                           // send signal to Arduino Nano 33 or listen for a response
                            // wait for response
                            /*
     switch (arduinoNanoResponse) {
@@ -92,8 +96,8 @@ void right1motor(int time) {  // makes a right turn using 1 motor lasting the ti
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
 
-  delay(time);
-  initialStateMotors();
+  delay(time); // keep turning for "time" miliseconds
+  initialStateMotors();   // stop turning
 }
 
 void left1motor(int time) {  // makes a left turn using 1 motor lasting the time you specified
@@ -108,11 +112,11 @@ void left1motor(int time) {  // makes a left turn using 1 motor lasting the time
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
 
-  delay(time);
-  initialStateMotors();
+  delay(time); // keep turning for "time" miliseconds
+  initialStateMotors();   // stop turning
 }
 
-void right2motor() {
+/*void right2motor() {
   analogWrite(enA, 130);
   analogWrite(enB, 130);
 
@@ -125,7 +129,7 @@ void right2motor() {
   digitalWrite(in4, LOW);
   delay(800);
   initialStateMotors();
-}
+}*/
 
 void forward() {
   analogWrite(enA, 130);
