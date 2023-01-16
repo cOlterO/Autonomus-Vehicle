@@ -4,7 +4,7 @@
 
 #include "pitches.h"
 
-const int BUZZER_PIN = D8;
+const int BUZZER_PIN = D4;
 
 int melody[] = {
   NOTE_E5, NOTE_D5, NOTE_FS4, NOTE_GS4, 
