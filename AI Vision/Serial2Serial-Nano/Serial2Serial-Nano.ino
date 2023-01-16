@@ -29,8 +29,9 @@
 
 
 // Prediction transfer to ESP32
-#define ESPPIN1 7
-#define ESPPIN2 11
+#define TX3Pin 11
+#define RX3Pin 7
+UART esp32Serial(TX3Pin, RX3Pin, NC, NC);
 // Prediction transfer to ESP32
 
 /*
@@ -136,10 +137,7 @@ void cropImage(int srcWidth, int srcHeight, uint8_t *srcImage, int startX, int s
 void setup()
 {
     // Prediction transfer to ESP32
-    pinMode(ESPPIN1, OUTPUT);
-    pinMode(ESPPIN2, OUTPUT);
-    digitalWrite(ESPPIN1, LOW);
-    digitalWrite(ESPPIN2, LOW);
+    esp32Serial.begin(9600,SERIAL_8N1);
     // Prediction transfer to ESP32
 
 
@@ -147,7 +145,7 @@ void setup()
     Serial.begin(115200);
     // comment out the below line to cancel the wait for USB connection (needed for native USB)
     while (!Serial);
-    Serial.println("Edge Impulse Inferencing Demo");
+    Serial.println("Edge Impulse Inferencing");
 
     // summary of inferencing settings (from model_metadata.h)
     ei_printf("Inferencing settings:\n");
@@ -258,32 +256,8 @@ void loop()
 
         Serial.println("Most likely prediction:");
         ei_printf("%s: %.5f\n", result.classification[maxLabelIndex].label, result.classification[maxValueIndex].value);
-
-        if (result.classification[maxLabelIndex].label == "Unknown") {
-          digitalWrite(ESPPIN1, LOW);
-          digitalWrite(ESPPIN2, LOW);
-          Serial.println("LOW,LOW");
-        } 
-        else if (result.classification[maxLabelIndex].label == "Stop") {
-          digitalWrite(ESPPIN1, HIGH);
-          digitalWrite(ESPPIN2, HIGH);
-          Serial.println("HIGH,HIGH");
-        } 
-        else if (result.classification[maxLabelIndex].label == "Right") {
-          digitalWrite(ESPPIN1, HIGH);
-          digitalWrite(ESPPIN2, LOW);
-          Serial.println("HIGH,LOW");
-        } 
-        else if (result.classification[maxLabelIndex].label == "Left") {
-          digitalWrite(ESPPIN1, LOW);
-          digitalWrite(ESPPIN2, HIGH);
-          Serial.println("LOW,HIGH");
-        }
-        else if (result.classification[maxLabelIndex].label == "Pedestrian") {
-          digitalWrite(ESPPIN1, LOW);
-          digitalWrite(ESPPIN2, LOW);
-          Serial.println("LOW,LOW");
-        } 
+        esp32Serial.println(result.classification[maxLabelIndex].label);
+        
 
         // Prediction transfer to ESP32
 
