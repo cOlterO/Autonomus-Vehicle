@@ -137,7 +137,7 @@ void cropImage(int srcWidth, int srcHeight, uint8_t *srcImage, int startX, int s
 void setup()
 {
     // Prediction transfer to ESP32
-    esp32Serial.begin(9600,SERIAL_8N1);
+    esp32Serial.begin(115200,SERIAL_8N1);
     // Prediction transfer to ESP32
 
 
@@ -256,7 +256,7 @@ void loop()
 
         Serial.println("Most likely prediction:");
         ei_printf("%s: %.5f\n", result.classification[maxLabelIndex].label, result.classification[maxValueIndex].value);
-        esp32Serial.println(result.classification[maxLabelIndex].label);
+        esp32Serial.print(result.classification[maxLabelIndex].label);
         
 
         // Prediction transfer to ESP32
