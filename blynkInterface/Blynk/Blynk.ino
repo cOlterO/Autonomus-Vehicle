@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
-#include "DHT.h"
+
 
 //Networking credentials
 char auth[] = BLYNK_AUTH_TOKEN;
@@ -21,11 +21,10 @@ char pass[] = "PASSWORD";   //SAME HER TOO
 //Pinouts 
 #define LED_BUILTIN 2
 #define tempPIN 33
-#define dhtPIN 25
 #define offsetValue 2  
 
 BlynkTimer timer;
-DHT dht(dhtPIN, DHT11); 
+ 
 
 // Updates every 1S
 void myTimerEvent(){
@@ -37,7 +36,7 @@ void myTimerEvent(){
  //Blynk.virtualWrite(V5, xxx);                                    //(String) AI prediction 
   //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed 
  //Blynk.virtualWrite(V7, xxx);                                   //Left motor LED if needed 
- Blynk.virtualWrite(V8,dht.readTemperature() );
+ 
  
 }
 
