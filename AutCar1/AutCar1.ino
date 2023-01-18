@@ -108,12 +108,12 @@ BlynkTimer timer;
 // Updates every 1S
 void myTimerEvent() {
   // Blynk.virtualWrite(V0, digitalRead(LED_BUILTIN));               //(INT) inbuild Led state.
-  Blynk.virtualWrite(V1, d1);               //(INT) Front Ultrasensor value on xxx
-  Blynk.virtualWrite(V2, d2);               //(INT) Left Ultrasensor value
-  Blynk.virtualWrite(V3, d3);               //(INT) Right Ultrasenor value
-  Blynk.virtualWrite(V4, tempData());       //(Float) Battery temp
+  Blynk.virtualWrite(V1, d1);             //(INT) Front Ultrasensor value on xxx
+  Blynk.virtualWrite(V2, d2);             //(INT) Left Ultrasensor value
+  Blynk.virtualWrite(V3, d3);             //(INT) Right Ultrasenor value
+  Blynk.virtualWrite(V4, tempData());     //(Float) Battery temp
   Blynk.virtualWrite(V5, showNewData());  //(String) AI prediction
-                                            //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed
+                                          //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed
   //Blynk.virtualWrite(V7, xxx);                                   //Left motor LED if needed
 }
 
@@ -123,6 +123,10 @@ const byte numChars = 32;
 char receivedChars[numChars];  // an array to store the received data
 
 boolean newData = false;
+
+
+// int initialSpeed = 140;  // pwm that forward() starts with
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -157,12 +161,12 @@ void loop() {
   Blynk.run();
   timer.run();  // Initiates BlynkTimer
 
-  dMeasure(); //measures and stores distance
+  dMeasure();  //measures and stores distance
 
-  recvWithEndMarker(); //Serial to serial communication
-  showNewData();  //returns string prediction from serial 2
+  recvWithEndMarker();  //Serial to serial communication
+  showNewData();        //returns string prediction from serial 2
 
-  
+
   if (d1 > 40) {
     Serial.println("FORWARD");
     forward();
@@ -265,34 +269,6 @@ void dMeasure() {
   Serial.println(sonar[2].ping_cm());
 }
 
-// String sts(){
-
-//   char buffer [];
-
-//   for(int 1 = 0; i < ; i++){
-//   if(Serial2.available() > 0){
-//     buffer[i] = Serial2.read();
-
-//   }
-//   }
-// }
-
-//gets Serial reading from nano microcontroller. (The prediction)
-String serial2Serial() {
-  if (Serial2.available() > 0) {
-
-    prediction = Serial.readString();
-
-    Serial.println("serial prediction: ");
-    Serial.print(prediction);
-  }
-  // if (prediction.length() > 1) {
-  //   prediction = prediction.substring(1);
-  //   return prediction;
-  // }
-  // prediction.trim();
-  return prediction;
-}
 
 //switch case for predictions
 void movement(String prediction) {
@@ -348,6 +324,11 @@ void forward() {
   analogWrite(enB, 160);
   aForward();
   bForward();
+  // for (int initialSpeed; initialSpeed < 180; initialSpeed++) {
+  //   analogWrite(enA, initialSpeed);
+  //   analogWrite(enB, initialSpeed);
+  //   delay(20);
+  // }
 }
 
 void backward() {
