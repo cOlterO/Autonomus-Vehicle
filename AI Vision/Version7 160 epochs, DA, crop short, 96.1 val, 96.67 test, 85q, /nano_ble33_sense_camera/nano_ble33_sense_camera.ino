@@ -30,6 +30,9 @@
 // Prediction transfer to ESP32
 #define TX3Pin 11
 #define RX3Pin 7
+#define RED 22
+#define BLUE 24
+#define GREEN 23
 UART esp32Serial(TX3Pin, RX3Pin, NC, NC);
 // Prediction transfer to ESP32
 
@@ -137,6 +140,10 @@ void cropImage(int srcWidth, int srcHeight, uint8_t *srcImage, int startX, int s
 void setup() {
   // Prediction transfer to ESP32
   esp32Serial.begin(115200, SERIAL_8N1);
+  // initialize the internal RGB LED digital Pins as an output for prediction signalling
+  pinMode(RED, OUTPUT);
+  pinMode(BLUE, OUTPUT);
+  pinMode(GREEN, OUTPUT);
   // Prediction transfer to ESP32
 
   // put your setup code here, to run once:
@@ -162,10 +169,10 @@ void loop() {
   bool stop_inferencing = false;
 
   while (stop_inferencing == false) {
-    ei_printf("\nStarting inferencing in 2 seconds...\n");
+    ei_printf("\nStarting inferencing...\n");
 
     // instead of wait_ms, we'll wait on the signal, this allows threads to cancel us...
-    if (ei_sleep(2000) != EI_IMPULSE_OK) {
+    if (ei_sleep(0) != EI_IMPULSE_OK) {
       break;
     }
 
@@ -254,8 +261,30 @@ void loop() {
 
     Serial.println("Most likely prediction:");
     ei_printf("%s: %.5f\n", result.classification[maxLabelIndex].label, result.classification[maxValueIndex].value);
-    esp32Serial.print(result.classification[maxLabelIndex].label);
+    // Print to the esp32
+    esp32Serial.println(result.classification[maxLabelIndex].label);
 
+    if (result.classification[maxLabelIndex].label == "Stop") {
+      digitalWrite(BLUE, HIGH);
+      digitalWrite(GREEN, HIGH);
+      digitalWrite(RED, LOW);
+    } else if (result.classification[maxLabelIndex].label == "Left") {
+      digitalWrite(BLUE, HIGH);
+      digitalWrite(GREEN, LOW);
+      digitalWrite(RED, LOW);
+    } else if (result.classification[maxLabelIndex].label == "Right") {
+      digitalWrite(BLUE, LOW);
+      digitalWrite(GREEN, HIGH);
+      digitalWrite(RED, HIGH);
+    } else if (result.classification[maxLabelIndex].label == "Pedestrian") {
+      digitalWrite(BLUE, HIGH);
+      digitalWrite(GREEN, HIGH);
+      digitalWrite(RED, HIGH);
+    } else if (result.classification[maxLabelIndex].label == "Unknown"){
+      digitalWrite(BLUE, LOW);
+      digitalWrite(GREEN, LOW);
+      digitalWrite(RED, LOW);
+    }
 
     // Prediction transfer to ESP32
 
