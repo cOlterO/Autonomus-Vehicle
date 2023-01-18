@@ -7,15 +7,16 @@
 \_| |_/\__,_|\__\___/|_| |_|\___/|_| |_| |_|\___/ \__,_|___/  \____/\__,_|_|   
                                                                                
 */
+#include <string>
 #include <NewPing.h>  // Sonar library
 
 #define SONAR_NUM 3       // Number of sensors.
 #define MAX_DISTANCE 250  // Maximum distance (in cm) to ping.
 
 NewPing sonar[SONAR_NUM] = {      // Sensor object array.
-  NewPing(33, 35, MAX_DISTANCE),  // Each sensor's trigger pin, echo pin, and max distance to ping.
-  NewPing(22, 23, MAX_DISTANCE),
-  NewPing(18, 19, MAX_DISTANCE)
+  NewPing(21, 22, MAX_DISTANCE),  // Each sensor's trigger pin, echo pin, and max distance to ping.
+  NewPing(33, 35, MAX_DISTANCE),
+  NewPing(26, 27, MAX_DISTANCE)
 };
 
 
@@ -26,13 +27,13 @@ long distance;
 
 
 // Motor A(left) connections
-const int enA = 13;
-const int in1 = 12;
-const int in2 = 14;
+const int enA = 14;
+const int in1 = 13;
+const int in2 = 32;
 // Motor B(right) connections
-const int enB = 25;
-const int in3 = 26;
-const int in4 = 27;
+const int enB = 18;  //brown
+const int in3 = 23;  //red
+const int in4 = 5;   //orange
 
 //camera
 #define RXD2 16
@@ -94,7 +95,7 @@ String lastPred = "";
 //Networking credentials
 char auth[] = BLYNK_AUTH_TOKEN;
 char ssid[] = "Whax";      //SHOULD BE CHANGED
-char pass[] = "1234567a";  //SAME HER TOO
+char pass[] = "1234567a";  //SHOULD BE CHANGED
 
 //Pinouts
 // #define LED_BUILTIN 2
@@ -107,20 +108,21 @@ BlynkTimer timer;
 // Updates every 1S
 void myTimerEvent() {
   // Blynk.virtualWrite(V0, digitalRead(LED_BUILTIN));               //(INT) inbuild Led state.
-  Blynk.virtualWrite(V1, d1);          //(INT) Front Ultrasensor value on xxx
-  Blynk.virtualWrite(V2, d2);          //(INT) Left Ultrasensor value
-  Blynk.virtualWrite(V3, d3);          //(INT) Right Ultrasenor value
-  Blynk.virtualWrite(V4, tempData());  //(Float) Battery temp
-  Blynk.virtualWrite(V5, lastPred);  //(String) AI prediction
-                                       //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed
+  Blynk.virtualWrite(V1, d1);               //(INT) Front Ultrasensor value on xxx
+  Blynk.virtualWrite(V2, d2);               //(INT) Left Ultrasensor value
+  Blynk.virtualWrite(V3, d3);               //(INT) Right Ultrasenor value
+  Blynk.virtualWrite(V4, tempData());       //(Float) Battery temp
+  Blynk.virtualWrite(V5, showNewData());  //(String) AI prediction
+                                            //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed
   //Blynk.virtualWrite(V7, xxx);                                   //Left motor LED if needed
 }
 
 
 
-const byte LED_BUILTIN = 32;
+const byte numChars = 32;
+char receivedChars[numChars];  // an array to store the received data
 
-
+boolean newData = false;
 
 void setup() {
   // put your setup code here, to run once:
@@ -150,32 +152,64 @@ void setup() {
   Serial.println("Serial2Serial Arduino Nano 33 BLE to ESP32 1-wire");
 }
 
+
 void loop() {
   Blynk.run();
   timer.run();  // Initiates BlynkTimer
 
-  dMeasure();
-  //fetches prediction
-  serial2Serial();
+  dMeasure(); //measures and stores distance
 
-  //forward if car isnt too close to wall
+  recvWithEndMarker(); //Serial to serial communication
+  showNewData();  //returns string prediction from serial 2
+
+  
   if (d1 > 40) {
+    Serial.println("FORWARD");
     forward();
     dMeasure();
   } else {
-    Serial.println("ENTERS ELSE");
-    //Stops car
+    Serial.println("MOVEMENT");
     initialStateMotors();
-    //performs movement based on prediction
-    movement(prediction);
+    //   movement(prediction);
+    // }
+  }
+}
 
-    //stores latest prediction so that it doesnt get cleared(For IOT)
-    lastPred = prediction;
 
-    //resets buffer
-    prediction = "";
-    Serial2.end();
-    Serial2.begin(115200);
+
+
+
+
+void recvWithEndMarker() {
+  static byte ndx = 0;
+  char endMarker = '\n';
+  char rc;
+
+  // if (Serial.available() > 0) {
+  while (Serial2.available() > 0 && newData == false) {
+    rc = Serial2.read();
+
+    if (rc != endMarker) {
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= numChars) {
+        ndx = numChars - 1;
+      }
+    } else {
+      receivedChars[ndx] = '\0';  // terminate the string
+      ndx = 0;
+      newData = true;
+    }
+  }
+}
+
+String showNewData() {
+  if (newData == true) {
+    Serial.print("Prediction is: ");
+    Serial.println(receivedChars);
+    prediction = receivedChars;
+    newData = false;
+    return prediction;
   }
 }
 
@@ -219,8 +253,6 @@ void nokia() {
   }
 }
 
-
-
 void dMeasure() {
   d1 = sonar[0].ping_cm();
   delay(30);
@@ -237,19 +269,33 @@ void dMeasure() {
   Serial.println(sonar[2].ping_cm());
 }
 
-//gets Serial reading from nano microcontroller. (The prediction)
-void serial2Serial() {
-  while (Serial2.available() >= 1) {
-    delay(2);
+// String sts(){
 
-    char data = Serial2.read();
-    prediction += data;
+//   char buffer [];
+
+//   for(int 1 = 0; i < ; i++){
+//   if(Serial2.available() > 0){
+//     buffer[i] = Serial2.read();
+
+//   }
+//   }
+// }
+
+//gets Serial reading from nano microcontroller. (The prediction)
+String serial2Serial() {
+  if (Serial2.available() > 0) {
+
+    prediction = Serial.readString();
+
+    Serial.println("serial prediction: ");
+    Serial.print(prediction);
   }
-  if (prediction.length() > 1) {
-    prediction = prediction.substring(1);
-  } else {
-    Serial.println("NoPrediction");
-  }
+  // if (prediction.length() > 1) {
+  //   prediction = prediction.substring(1);
+  //   return prediction;
+  // }
+  // prediction.trim();
+  return prediction;
 }
 
 //switch case for predictions
@@ -263,18 +309,18 @@ void movement(String prediction) {
 
     case 's':
       nokia();
-      delay(5000);
+      // delay(3000);
       break;
 
     case 'r':
       right1motor(640);
       Serial.println("Turning Right");
-      delay(5000);
+      // delay(3000);
       break;
 
     case 'l':
       left1motor(640);
-      delay(5000);
+      // delay(3000);
       break;
 
     default:
@@ -292,18 +338,18 @@ void initialStateMotors() {
   digitalWrite(in4, LOW);
 }
 void aForward() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
 }
 
 void bForward() {
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
 }
 
 void forward() {
-  analogWrite(enA, 134);
-  analogWrite(enB, 142);
+  analogWrite(enA, 160);
+  analogWrite(enB, 160);
   aForward();
   bForward();
 }
@@ -317,13 +363,13 @@ void backward() {
 
 
 void aBackward() {
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
 }
 
 void bBackward() {
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
 }
 
 void left1motor(int time) {  // makes a left turn using 1 motor lasting the time you specified
@@ -335,8 +381,8 @@ void left1motor(int time) {  // makes a left turn using 1 motor lasting the time
   digitalWrite(in2, LOW);
 
   //right motor spin
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
 
   delay(time);
   initialStateMotors();
@@ -351,8 +397,8 @@ void right1motor(int time) {
   digitalWrite(in4, LOW);
 
   //left motor spin
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
 
   delay(time);
   initialStateMotors();
