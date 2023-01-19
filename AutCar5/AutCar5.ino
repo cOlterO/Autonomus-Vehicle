@@ -9,6 +9,9 @@
 */
 #include <string>
 #include <NewPing.h>  // Sonar library
+#include <ESP_LM35.h>
+
+ESP_LM35 temp(34);
 
 #define SONAR_NUM 3       // Number of sensors.
 #define MAX_DISTANCE 300  // Maximum distance (in cm) to ping.
@@ -22,8 +25,9 @@ NewPing sonar[SONAR_NUM] = {      // Sensor object array.
 unsigned long myTime;
 unsigned long prevTime;
 
-
-
+// LM 35 temp sensor
+const int tempPIN = 34;
+const int offsetValue = 2;
 
 
 // defines variables for distance
@@ -35,7 +39,7 @@ long distance;
 const int enA = 14;
 const int in1 = 13;
 const int in2 = 32;
-const int PWM_left = 140;
+const int PWM_left = 142;
 
 // Motor B(right) connections
 const int enB = 18;  //brown
@@ -108,18 +112,18 @@ String lastPred = "";
 
 //Networking credentials
 char auth[] = BLYNK_AUTH_TOKEN;
-char ssid[] = "Whax";      //SHOULD BE CHANGED
-char pass[] = "1234567a";  //SHOULD BE CHANGED
+char ssid[] = "POCO F3";     //SHOULD BE CHANGED
+char pass[] = "alcornoque";  //SHOULD BE CHANGED
 
 //Pinouts
 // #define LED_BUILTIN 2
-#define tempPIN 33
+#define tempPIN 32
 #define offsetValue 2
 
 int pwmEnA;
 int pwmEnB;
 
-String Shit = " ";
+String direction = " ";
 
 BlynkTimer timer;
 
@@ -140,14 +144,12 @@ BLYNK_WRITE(V11) {
 // Updates every 1S
 void myTimerEvent() {
   // Blynk.virtualWrite(V0, digitalRead(LED_BUILTIN));               //(INT) inbuild Led state.
-  Blynk.virtualWrite(V1, d1);  //(INT) Front Ultrasensor value on xxx
-  Blynk.virtualWrite(V3, d2);  //(INT) Left Ultrasensor value
-  Blynk.virtualWrite(V2, d3);  //(INT) Right Ultrasenor value
-  //Blynk.virtualWrite(V4, tempData());     //(Float) Battery temp
-  //Blynk.virtualWrite(V5, showNewData());  //(String) AI prediction
-  Blynk.virtualWrite(V5, Shit);
-  //Blynk.virtualWrite(V6, xxx);                                  //Right motor LED if needed
-  //Blynk.virtualWrite(V7, xxx);                                   //Left motor LED if needed
+  Blynk.virtualWrite(V1, d1);             //(INT) Front Ultrasensor value on xxx
+  Blynk.virtualWrite(V3, d2);             //(INT) Left Ultrasensor value
+  Blynk.virtualWrite(V2, d3);             //(INT) Right Ultrasenor value
+  Blynk.virtualWrite(V4, temp.tempC());   //(Float) Battery temp
+  Blynk.virtualWrite(V5, showNewData());  //(String) AI prediction
+  Blynk.virtualWrite(V12, direction);
 }
 
 
@@ -177,7 +179,7 @@ void setup() {
 
   // pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
-
+  pinMode(tempPIN, INPUT);
 
   Blynk.begin(auth, ssid, pass);
   //Function to be called every second
@@ -202,10 +204,10 @@ void loop() {
   recvWithEndMarker();  //Serial to serial communication
   showNewData();        //returns string prediction from serial 2
 
-  
 
-  if (d1 > 25) {
-    Shit = "Straight";
+
+  if (d1 > 27) {
+    direction = "Straight";
     forward(PWM_left, PWM_right);
     delay(250);
     initialStateMotors();
@@ -213,27 +215,26 @@ void loop() {
     dMeasure();
     //myTime = millis();
     //Serial.println("Delay:" + (String)(myTime - prevTime));
+    const int ideal_distance_to_wall = 20;
+    const int corridor_distance = 40;
+    if (((d2 > (d3 + h)) && (d2 < corridor_distance)) || ((d3 > corridor_distance) && (d2 > ideal_distance_to_wall)) || ((d2 > corridor_distance) && (d3 < ideal_distance_to_wall))) {
+      //if ((d2 > (d3 + h)) && ((d2 < 60) || (d3 < 60))) {  // approaching right wall
+      direction = "Left";
+      correctLeft(240);  // Goes to left
 
-    if (d2 > (d3 + h)) {  // approaching right wall
-      Shit = "Left";
-      turnLeft(220);
-      dMeasure();
 
-
-    } else if (d3 > (d2 + h)) {  // approaching left wall
-      Shit = "Right";
-      turnRight(180);
-      dMeasure();
-
+    }  //else if ((d3 > (d2 + h)) && ((d2 < 60) || (d3 < 60))) {  // approaching left wall
+    else if (((d3 > (d2 + h)) && (d3 < corridor_distance)) || ((d3 > corridor_distance) && (d2 < ideal_distance_to_wall)) || ((d2 > corridor_distance) && (d3 > ideal_distance_to_wall))) {
+      direction = "Right";
+      correctRight(180);  // Goes to right
     }
 
   } else {
     initialStateMotors();
-    Shit = "Init";
-    //movement(prediction);
+    direction = "Init";
+    movement(prediction);
   }
 
-  //delay(100);
 }
 
 
@@ -284,18 +285,13 @@ float tempData() {
   float milliVolt = inputValue * (3300.0 / 4096.0);  //Calculates the corressponding milli Voltage range from 0 - 5V
   float temp = milliVolt / 10;                       //Datasheet specifies that LM35 reads 10mv/°C and adds to the value before.
   temp = temp * offsetValue;
-
-  /*Debuging thing for temp 
   Serial.println("......................");
-  Serial.println(" "); 
-  Serial.println("Reading: " + (String)inputValue); 
-  Serial.println("volt: " + (String)milliVolt); 
-  Serial.println("Temp: " + (String)temp); 
-  Serial.println("Temp DHT: " + (String)dht.readTemperature());
-  Serial.println(" "); 
+  Serial.println(" ");
+  Serial.println("Reading: " + (String)inputValue);
+  Serial.println("volt: " + (String)milliVolt);
+  Serial.println("Temp: " + (String)temp);
+  Serial.println(" ");
   Serial.println("......................");
-  */
-
   return temp;
 }
 
@@ -319,20 +315,19 @@ void nokia() {
 }
 
 void dMeasure() {
-  d1 = (sonar[0].ping_median(5, 200) / 29) / 2;
+  d1 = (sonar[0].ping_median(4, 200) / 29) / 2;
   Serial.print("Front Sensor: ");
   Serial.println(d1);
   delay(30);
-  d2 = (sonar[1].ping_median(5, 200) / 29) / 2;
+  d2 = (sonar[1].ping_median(4, 200) / 29) / 2;
   Serial.print("Left Sensor: ");
   Serial.println(d2);
   delay(30);
-  d3 = (sonar[2].ping_median(5, 200) / 29) / 2;
+  d3 = (sonar[2].ping_median(4, 200) / 29) / 2;
 
   Serial.print("Right Sensor: ");
   Serial.println(d3);
   Serial.println("");
-  //delay(30);
 }
 
 
@@ -351,13 +346,13 @@ void movement(String prediction) {
       break;
 
     case 'r':
-      turnRight(640);
+      correctRight(1000);
       Serial.println("Turning Right");
       // delay(3000);
       break;
 
     case 'l':
-      turnLeft(640);
+      correctLeft(1100);
       // delay(3000);
       break;
 
@@ -415,7 +410,7 @@ void bBackward() {
   digitalWrite(in4, HIGH);
 }
 
-void turnLeft(int time) {  // makes a left turn using 1 motor lasting the time you specified
+void correctLeft(int time) {  // makes a left turn using 1 motor lasting the time you specified
   analogWrite(enA, 150);
   analogWrite(enB, 170);
 
@@ -431,7 +426,7 @@ void turnLeft(int time) {  // makes a left turn using 1 motor lasting the time y
   initialStateMotors();
 }
 
-void turnRight(int time) {
+void correctRight(int time) {
   analogWrite(enA, 170);
   analogWrite(enB, 150);
 
