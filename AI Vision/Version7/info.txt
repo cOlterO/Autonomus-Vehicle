@@ -1,0 +1,1 @@
+ 160 epochs, DA, crop short, 96.1 val, 96.67 test, 85q, 
