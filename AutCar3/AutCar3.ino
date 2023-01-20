@@ -197,32 +197,19 @@ void loop() {
   recvWithEndMarker();  //Serial to serial communication
   showNewData();        //returns string prediction from serial 2
 
-  myTime = millis();
+  if(d1 > 40){
 
-  if (d1 > 40) {
-    //Serial.println("FORWARD");
-    if ((d2 < distance_to_walls) && (myTime > (prevTime + 500))) {                                         // Left side is getting closer to wall
-      prevTime = myTime;
-      int PWM_left_adjusted = PWM_left + (distance_to_walls - d3) * 1.4;  // Left motor increases speed
-      forward(PWM_left_adjusted, PWM_right);
-      Serial.print("LEFT CORRECTION");
-    }
+    forward();
+    
 
-    if ((d3 < distance_to_walls) && (myTime > (prevTime + 500))) {                                       // Right side is getting closer to wall
-      prevTime = myTime;
-      int PWM_right_adjusted = PWM_right + (distance_to_walls - d2) * 1.4;  // Right motor increases speed
-      forward(PWM_left, PWM_right_adjusted);
-      Serial.print("RIGHT CORRECTION");
-    }
+  }else{
 
-    //Serial.println("left pwm value is: " + (String)PWM_left);
-    //erial.println("right pwm value is: " + (String)PWM_right);
-    dMeasure();
-  } else {
-    Serial.println("ELSE");
     initialStateMotors();
-    //movement(prediction);
+
+
   }
+
+  
 }
 
 
@@ -307,7 +294,7 @@ void dMeasure() {
   d3 = sonar[2].ping_cm();
   delay(30);
 
- /* Serial.print("Front Sensor: ");
+  /* Serial.print("Front Sensor: ");
   Serial.println(sonar[0].ping_cm());
   Serial.print("Left Sensor: ");
   Serial.println(sonar[1].ping_cm());

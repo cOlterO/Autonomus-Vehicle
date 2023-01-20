@@ -7,11 +7,15 @@
 \_| |_/\__,_|\__\___/|_| |_|\___/|_| |_| |_|\___/ \__,_|___/  \____/\__,_|_|   
                                                                                
 */
-#include <string>
+#include <string> //string manpiulation library
 #include <NewPing.h>  // Sonar library
-#include <ESP_LM35.h>
+#include <ESP_LM35.h> // temperature library
+#include "pitches.h"//buzzer musical pitches
+#include <WiFi.h> //wifi library
+#include <WiFiClient.h> //wifi library
+#include <BlynkSimpleEsp32.h> //blyink iot library
 
-ESP_LM35 temp(34);
+
 
 #define SONAR_NUM 3       // Number of sensors.
 #define MAX_DISTANCE 300  // Maximum distance (in cm) to ping.
@@ -26,9 +30,9 @@ unsigned long myTime;
 unsigned long prevTime;
 
 // LM 35 temp sensor
+ESP_LM35 temp(34);
 const int tempPIN = 34;
 const int offsetValue = 2;
-
 
 // defines variables for distance
 long duration;
@@ -47,14 +51,14 @@ const int in3 = 23;  //red
 const int in4 = 5;   //orange
 const int PWM_right = 140;
 
+int pwmEnA; // pwm values for Motor A 
+int pwmEnB; //pwm values for Motor B
+
+
 //camera
 #define RXD2 16
 #define TXD2 17
 
-
-
-//buzzer musical pitches
-#include "pitches.h"
 
 // Buzzer pin
 const int BUZZER_PIN = 4;
@@ -73,12 +77,6 @@ int durations[] = {
   2
 };
 
-int durations2[] = {
-  4, 2, 8, 8,
-  4, 4, 3, 6,
-  5, 2, 3, 3,
-  2
-};
 
 // Variables for distance of the ultrasound sensors
 int d1;  // Front
@@ -104,24 +102,15 @@ String lastPred = "";
 // Comment this out to disable prints and save space
 #define BLYNK_PRINT Serial
 
-
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <BlynkSimpleEsp32.h>
-
-
 //Networking credentials
 char auth[] = BLYNK_AUTH_TOKEN;
 char ssid[] = "POCO F3";     //SHOULD BE CHANGED
 char pass[] = "alcornoque";  //SHOULD BE CHANGED
 
 //Pinouts
-// #define LED_BUILTIN 2
 #define tempPIN 32
 #define offsetValue 2
 
-int pwmEnA;
-int pwmEnB;
 
 String direction = " ";
 
@@ -136,11 +125,6 @@ BLYNK_WRITE(V11) {
   pwmEnB = param.asInt();
 }
 
-/*BLYNK_WRITE(V9) {
-  if (param.asInt() == 0) initialStateMotors();
-  else forward(PWM_right, PWM_right);
-}*/
-
 // Updates every 1S
 void myTimerEvent() {
   // Blynk.virtualWrite(V0, digitalRead(LED_BUILTIN));               //(INT) inbuild Led state.
@@ -152,19 +136,13 @@ void myTimerEvent() {
   Blynk.virtualWrite(V12, direction);
 }
 
-
-
 const byte numChars = 32;
 char receivedChars[numChars];  // an array to store the received data
 
-boolean newData = false;
-
-
-// int initialSpeed = 140;  // pwm that forward() starts with
-
+boolean newData = false; //flag for serial communication
 
 void setup() {
-  // put your setup code here, to run once:
+
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2);
   prevTime = millis();
@@ -204,26 +182,27 @@ void loop() {
   recvWithEndMarker();  //Serial to serial communication
   showNewData();        //returns string prediction from serial 2
 
-
-
   if (d1 > 27) {
-    direction = "Straight";
+
+    direction = "Straight"; //variable for blynk 
+
     forward(PWM_left, PWM_right);
     delay(250);
+
     initialStateMotors();
-    //prevTime = millis();
     dMeasure();
-    //myTime = millis();
-    //Serial.println("Delay:" + (String)(myTime - prevTime));
+
     const int ideal_distance_to_wall = 20;
     const int corridor_distance = 40;
+
+    //ensures car stays in the middle
     if (((d2 > (d3 + h)) && (d2 < corridor_distance)) || ((d3 > corridor_distance) && (d2 > ideal_distance_to_wall)) || ((d2 > corridor_distance) && (d3 < ideal_distance_to_wall))) {
-      //if ((d2 > (d3 + h)) && ((d2 < 60) || (d3 < 60))) {  // approaching right wall
       direction = "Left";
       correctLeft(240);  // Goes to left
 
 
-    }  //else if ((d3 > (d2 + h)) && ((d2 < 60) || (d3 < 60))) {  // approaching left wall
+    } 
+    //ensures car stays in the middle
     else if (((d3 > (d2 + h)) && (d3 < corridor_distance)) || ((d3 > corridor_distance) && (d2 < ideal_distance_to_wall)) || ((d2 > corridor_distance) && (d3 > ideal_distance_to_wall))) {
       direction = "Right";
       correctRight(180);  // Goes to right
@@ -237,15 +216,7 @@ void loop() {
 
 }
 
-
-
-
-
-
-
-
-
-
+//reads in String prediction from serial 2
 void recvWithEndMarker() {
   static byte ndx = 0;
   char endMarker = '\n';
@@ -269,6 +240,7 @@ void recvWithEndMarker() {
   }
 }
 
+//returns string prediction from recvWithEndMarker()
 String showNewData() {
   if (newData == true) {
     //Serial.print("Prediction is: ");
@@ -279,22 +251,7 @@ String showNewData() {
   }
 }
 
-float tempData() {
-
-  int inputValue = analogRead(tempPIN);              //Reads the value of potentiometer
-  float milliVolt = inputValue * (3300.0 / 4096.0);  //Calculates the corressponding milli Voltage range from 0 - 5V
-  float temp = milliVolt / 10;                       //Datasheet specifies that LM35 reads 10mv/°C and adds to the value before.
-  temp = temp * offsetValue;
-  Serial.println("......................");
-  Serial.println(" ");
-  Serial.println("Reading: " + (String)inputValue);
-  Serial.println("volt: " + (String)milliVolt);
-  Serial.println("Temp: " + (String)temp);
-  Serial.println(" ");
-  Serial.println("......................");
-  return temp;
-}
-
+//buzzer sound for reaching stop sign
 void nokia() {
   int size = sizeof(durations) / sizeof(int);
 
@@ -314,6 +271,7 @@ void nokia() {
   }
 }
 
+//measures and stores ultrasonic sensor distances
 void dMeasure() {
   d1 = (sonar[0].ping_median(4, 200) / 29) / 2;
   Serial.print("Front Sensor: ");
@@ -361,8 +319,6 @@ void movement(String prediction) {
   }
 }
 
-
-
 // Turn off motors - Initial state(All LOW)
 void initialStateMotors() {
   digitalWrite(in1, LOW);
@@ -370,46 +326,27 @@ void initialStateMotors() {
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
 }
+
+//set motor a forward
 void aForward() {
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
 }
-
+//set motor b forward
 void bForward() {
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
 }
 
+//car drives forward
 void forward(int pwmEnA, int pwmEnB) {
   analogWrite(enA, pwmEnA);
   analogWrite(enB, pwmEnB);
   aForward();
   bForward();
-  // for (int initialSpeed; initialSpeed < 180; initialSpeed++) {
-  //   analogWrite(enA, initialSpeed);
-  //   analogWrite(enB, initialSpeed);
-  //   delay(20);
-  // }
 }
 
-void backward() {
-  analogWrite(enA, 134);
-  analogWrite(enB, 140);
-  aBackward();
-  bBackward();
-}
-
-
-void aBackward() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-}
-
-void bBackward() {
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-}
-
+//makes car turn slightly left
 void correctLeft(int time) {  // makes a left turn using 1 motor lasting the time you specified
   analogWrite(enA, 150);
   analogWrite(enB, 170);
@@ -426,6 +363,8 @@ void correctLeft(int time) {  // makes a left turn using 1 motor lasting the tim
   initialStateMotors();
 }
 
+
+//Make car turn slightly right
 void correctRight(int time) {
   analogWrite(enA, 170);
   analogWrite(enB, 150);
