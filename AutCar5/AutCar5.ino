@@ -182,7 +182,7 @@ void loop() {
   recvWithEndMarker();  //Serial to serial communication
   showNewData();        //returns string prediction from serial 2
 
-  if (d1 > 27) {
+  if (d1 > 25) {
 
     direction = "Straight"; //variable for blynk 
 
