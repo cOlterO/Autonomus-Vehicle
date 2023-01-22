@@ -1,1 +1,0 @@
-HC-SR04 Casing + Angle Adjustable Cradle by SavageRodent on Thingiverse: https://www.thingiverse.com/thing:1799012

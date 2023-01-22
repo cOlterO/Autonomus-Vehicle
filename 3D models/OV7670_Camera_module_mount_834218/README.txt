@@ -1,1 +1,0 @@
-OV7670 Camera module mount by Stoney on Thingiverse: https://www.thingiverse.com/thing:834218
