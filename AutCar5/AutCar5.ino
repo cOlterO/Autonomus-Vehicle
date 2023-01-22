@@ -5,6 +5,20 @@
 |  _  | | | | __/ _ \| '_ \ / _ \| '_ ` _ \ / _ \| | | / __| | |    / _` | '__|
 | | | | |_| | || (_) | | | | (_) | | | | | | (_) | |_| \__ \ | \__/\ (_| | |   
 \_| |_/\__,_|\__\___/|_| |_|\___/|_| |_| |_|\___/ \__,_|___/  \____/\__,_|_|   
+
+Benjamin Parambeth Davis - s214385
+Brendan Van de Venter - s204770
+Steffen Holm Cordes - s184208
+Juan Marín Collado - s221856
+
+
+Benjamin - s214385 was responsible for the Blynk code and temperature sensor (LM35).
+Brendan - s204770 was responsible for genreral integration of all code and NewPing Ultrasonic sensors.
+Steffen - s184208 was responsible for all AI related code and communication between Esp32 and Nano.
+Juan - s221856 was responsible for genreral integration of all code and the Buzzer.
+
+All work was distributed equally and agreed upon by group members.
+
                                                                                
 */
 #include <string> //string manpiulation library
@@ -172,6 +186,8 @@ void setup() {
 
 
 const int h = 3;  // hyrestsis
+
+
 
 void loop() {
   Blynk.run();
